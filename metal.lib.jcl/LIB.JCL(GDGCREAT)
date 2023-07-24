@@ -1,0 +1,26 @@
+//STAGE04C JOB (STAGE04),'Fabrice BOISSIER',CLASS=A,MSGCLASS=A,         00010006
+//             MSGLEVEL=(1,1),NOTIFY=&SYSUID                            00020006
+//*                                                                     00030006
+//STEP01   EXEC PGM=IDCAMS                                              00040006
+//SYSPRINT DD SYSOUT=B                                                  00050006
+//SYSIN    DD *                                                         00060006
+              DEFINE GDG(NAME(STAGE04.STOCK.GDGROUP)               -    00070006
+              LIMIT(3)                                             -    00080006
+              NOEMPTY                                              -    00090006
+              NOSCRATCH)                                                00100006
+/*                                                                      00110006
+//*******************************************************************   00120006
+//* NOEMPTY = Si limite atteinte, UNCATALOG la + ancienne generation*   00130006
+//* EMPTY = Si limite atteinte, UNCATALOG de toutes les generations *   00140006
+//* NOSCRATCH = Ne pas supprimer physiquement = UNCATALOG           *   00150006
+//* SCRATCH = Supprimer physiquement                                *   00160006
+//* NOEMPTY + SCRATCH = supprime tout...                            *   00170006
+//*******************************************************************   00180006
+//STEP02   EXEC PGM=IEFBR14                                             00190006
+//GDGMODEL DD DSN=&SYSUID..STOCK.GDGMODEL,                              00200006
+//             DISP=(NEW,CATLG,DELETE),                                 00210006
+//             UNIT=3390,VOL=SER=STGDSK,                                00220006
+//             SPACE=(TRK,1),                                           00230006
+//             DCB=(RECFM=FB,LRECL=80,BLKSIZE=8000)                     00240006
+//                                                                      00250006
+

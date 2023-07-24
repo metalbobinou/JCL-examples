@@ -1,0 +1,20 @@
+//STAGE04C JOB (STAGE04),'Fabrice BOISSIER',CLASS=A,MSGCLASS=A,         00010002
+//             MSGLEVEL=(1,1),NOTIFY=&SYSUID                            00020002
+//STEP01   EXEC PGM=IEFBR14                                             00030002
+//DD1      DD DSN=&SYSUID..LIB.JCL.PDSE,                                00040002
+//            DISP=(MOD,DELETE,DELETE),                                 00050002
+//            UNIT=3390,VOL=SER=STGDSK                                  00060002
+//STEP02   EXEC PGM=IEBCOPY                                             00070003
+//SYSUT1   DD DSN=&SYSUID..LIB.JCL,DISP=SHR                             00080002
+//SYSUT2   DD DSN=&SYSUID..LIB.JCL.PDSE,                                00090002
+//            DISP=(NEW,CATLG,DELETE),                                  00100002
+//            UNIT=3390,VOL=SER=STGDSK,                                 00110002
+//            SPACE=(TRK,(2,5,0)),                                      00120002
+//            DCB=(RECFM=FB,LRECL=80,BLKSIZE=8000,DSORG=PO),            00130002
+//            DSNTYPE=LIBRARY                                           00140002
+//SYSIN    DD *                                                         00150002
+    COPY INDD=SYSUT1,OUTDD=SYSUT2                                       00160002
+/*                                                                      00170002
+//SYSPRINT DD DUMMY                                                     00180002
+//                                                                      00190002
+

@@ -1,0 +1,12 @@
+//STAGE04C JOB (STAGE04),'Fabrice BOISSIER',CLASS=A,MSGCLASS=A,         00010008
+//             MSGLEVEL=(1,1),NOTIFY=&SYSUID                            00020008
+//* Premier JCL test // &SYSUID == moi meme // TYPRUN=SCAN test syntaxe 00030008
+//STEP01   EXEC PGM=IEFBR14                                             00040008
+//DD1      DD DSN=STAGE04.ALLOC.PARJCL.DEMO,                            00050008
+//            DISP=(NEW,CATLG,DELETE),                                  00060008
+//*           UNIT=3390,VOL=SER=STGDSK,                                 00070008
+//            UNIT=3390,                                                00080008
+//            SPACE=(TRK,(2,5,25)),                                     00090008
+//            DCB=(RECFM=FB,LRECL=800,BLKSIZE=8000)                     00100008
+//                                                                      00110008
+

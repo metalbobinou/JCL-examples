@@ -1,0 +1,94 @@
+2 façons de copier les caractères :
+ INREC FIELDS=(1:8,7,26:42,3)       
+Col 1 en sortie va recevoir Col 8 de l'entrée sur 7 caractères
+Col 26 en sortie va recevoir Col 42 de l'entrée sur 3 caractères
+OU
+
+ INREC FIELDS=(1,8,6,23)       
+On copie en sortie depuis la colonne 1 en entrée sur 8 caractères...
+...puis on copie depuis la colonne 6 en entrée sur 23 caractères
+=> 8 + 23 caractères copiés (dont 2 qui seront doublés)
+
+Sur 2e version :
+1) SDSFREQ : appel à SDSF (possible à faire avec IFAFD)
+//ISFIN DD *
+O=                                                       
+PRE NOTHING                                              
+DA                                                       
+ARR REAL A OWNER                                         
+ARR ECPU-TIME A REAL                                     
+PRE LOL*                                                 
+/*
+
+O=           
+On met OWNER à vide
+                                           
+PRE NOTHING                                              
+On met un préfixe bidon pour garder la liste vide
+
+DA                                                       
+On passe en Display Active (STC & JOBs actifs)
+
+ARR REAL A OWNER                                         
+On place la colonne REAL (mémoire) après la colonne OWNER
+
+ARR ECPU-TIME A REAL                                     
+On palce la colonne ECPU and après la REAL (si A est rempalcé par B, alors col placée avant... A = After, B = Before)
+
+PRE LOL* 
+On demande le préfixe LOL pour les STC/JOB (JOBNAME demarrant par LOL)
+
+
+2) CATGREP : appel à SORT
+//SYSIN DD *
+ SORT FIELDS=COPY                                   
+ INCLUDE COND=(1,80,SS,EQ,C'ISC') 
+/*
+
+ SORT FIELDS=COPY                                   
+On copie en sortie "simplement"
+
+ INCLUDE COND=(1,80,SS,EQ,C'LOL')     
+On copie SI la condition est vérifiée...
+1,80 => sur les colonnes de 1 à 80
+SS => ?? substring ? comparaison avec n'importe quelle chaîne présente sur la ligne (pas de colonnage)
+EQ => si on trouve la valeur quelque aprt sur la ligne, on la garde
+C'LOL' => on compare avec la chaîne LOL, donc si LOL est trouvée sur la ligne, la ligne est copiée
+
+
+3) CUTPASTE : appel à SORT
+//SYSIN DD *
+ INREC FIELDS=(1:8,7,9:26,7,17:35,8,26:44,4,31:51,6,38:62,6)         
+ OUTREC IFTHEN=(WHEN=(31,6,ZD,GT,2500),                              
+   BUILD=(1,43,44:C'   OK',42X)),                                    
+   IFTHEN=(WHEN=NONE,                                                
+     BUILD=(1,43,44:C'   KO',42X))                                   
+ SORT FIELDS=(1,7,CH,A)    
+/*
+
+INREC FIELDS=(1:8,7,9:26,7,17:35,8,26:44,4,31:51,6,38:62,6)    
+Avant le traitement on va décaler les colonnes....
+1:8,7 on écrit sur la colonne 1 en sortie ce qu'il y a à partir de la colonne 8 en entrée sur 7 caractères
+9:26,7 pareil... on écrit à partir de la colonne 9 en sortie les 7 caractères à partir de la colonne 26 en entrée
+    
+OUTREC IFTHEN=(WHEN=(31,6,ZD,GT,2500),                              
+   BUILD=(1,43,44:C'   OK',42X)),                                    
+   IFTHEN=(WHEN=NONE,                                                
+     BUILD=(1,43,44:C'   KO',42X))                             
+En sortie après traitement on va avoir 2 possibilités....
+Si à la colonne 31 sur 6 caractères "numériques" (ZD = numérique) on a une valeur Greater Than 2500...
+...alors on construit en copiant les caractères de la colonne 1 à 43, puis à la colonne 44 on va écrire '   OK', et on rajoute 42 espaces (pour rester sur 80 colonnes)
+
+Sinon (IFTHEN=(WHEN=NONE => toujours...), on fait pareil en écrivant KO à la place de OK
+
+     
+ SORT FIELDS=(1,7,CH,A)    
+Le traitement principal sera de trier l'ensemble des enregistrements en fonction de la clé...
+A => le tri sera Ascendant (et son inverse : D descendant)
+CH => la clé est faite de caractères (CHaracter)
+1,7 => la clé se trouve depuis la colonne 1 sur 7 caractères
+
+-- 
+Fabrice BOISSIER // Metalman
+Epita2012 - SRS
+root SRS (Fév 2011 - Fév 2012) 

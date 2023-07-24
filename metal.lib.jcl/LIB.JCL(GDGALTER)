@@ -1,0 +1,12 @@
+//STAGE04A JOB (STAGE04),'Fabrice BOISSIER',CLASS=A,MSGCLASS=A,         00010001
+//             MSGLEVEL=(1,1),NOTIFY=&SYSUID                            00020001
+//*                                                                     00030001
+//* ALTER DEFINITION GDG BASE                                           00040001
+//GDALT1   EXEC PGM=IDCAMS                                              00050001
+//SYSPRINT DD SYSOUT=B                                                  00060001
+//SYSIN    DD *                                                         00070001
+    ALTER STAGE04.STOCK.GDGROUP  -                                      00080001
+    LIMIT(5)                                                            00090001
+/*                                                                      00100001
+//                                                                      00110001
+

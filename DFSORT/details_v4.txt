@@ -1,0 +1,141 @@
+Voici un exemple pour récupérer l'état de STC depuis SDSF, reformater les résultats avec l'aide de SORT, et envoyer le tout sous forme de mail via la copie vers une file SMTP.
+
+Le découpage des steps s'est fait ainsi :
+1) Récupération des informations dans SDSF
+2) Extraction des lignes utiles
+3) Reformatage des colonnes + Condition
+4) Résultats mis au format HTML
+5) Préparation Communication SMTP + Header mail + Début mail
+6) Mise en forme pour SMTP (colonnes 80 - 200 refaites avec des espaces)
+7) Fin de mail + communication SMTP
+8) Mise en forme pour SMTP (colonnes 80 - 200 refaites avec des espaces)
+9) Envoi des 3 parties du mail
+
+Il est possible de faire cette manipulation de plusieurs façons, mais je vous présente la mienne comme exemple d'enchaînement extraction-traitement/formatage-envoi.
+L'enchaînement des étapes se fait avec 2 datasets sur disque (pour pouvoir débugger plus facilement) : TMP1 -> TMP2 -> TMP1 -> ...
+Des datasets temporaires sont aussi utilisés sur les steps 5 à 9 étant donné que l'on ne fait aucune manipulation difficile dessus.
+
+
+Step 1 : SDSFREQ
+PGM=SDSF
+La première étape consiste à interroger SDSF pour obtenir les informations souhaitées.
+Les programmes SDSF ou ISFAFD sont disponibles pour cela.
+Ils effectuent les commandes entrées en ISFIN et enregistrent chaque écran en sortie.
+On peut agrandir l'écran pour capturer plus que les 80x25 caractères du 3270.
+L'exemple proposé ne le fait pas et contourne certaines difficultés par des astuces.
+Les colonnes peuvent être agrandies ou réduites si nécessaire.
+On aura donc en ISFIN :
+"O=" On dit à SDSF de ne pas filtrer par Owner
+"PRE NOTHING" On demande à SDSF de n'afficher que les JOB/STC dont le préfixe est NOTHING (ainsi, on affichera que les JOB/STC commençant par NOTHING... généralement aucun JOB/STC ne l'utilise. A adapter en fonction de votre cas)
+"DA" On demande à SDSF d'afficher les tâches actives (Display Actives)
+"ARR REAL A OWNER" On arrange (ARRange) les colonnes pour afficher REAL (la mémoire utilisée) après (After) la colonne OWNER
+"ARR ECPU-TIME A REAL" On arrange les colonnes pour afficher ECPU-Time (temps CPU consommé par la tâche en incluant les syscalls et changements de contexte) après REAL
+"PRE LOL*" On affiche maintenant les JOB/STC dont le préfixe est LOL (à adapter pour votre cas)
+
+Ces exemples sont à adapter, si on veut renvoyer les préfixes B dans notre mail, au lieu de NOTHING on peut indiquer A et ignorer dans les steps suivantes ce qui commence par A.
+
+
+Step 2  : CATGREP
+PGM=SORT
+On va maintenant extraire les lignes qui nous intéressent parmis tous les écrans que SDSF nous a copié.
+Si le préfixe que l'on recherche est utilisé ailleurs sur les écrans, il est possible d'ignorer ces premiers enregistrements.
+L'opération serait donc d'ignorer les N * 25 premières lignes, avec N le nombre de commandes ne renvoyant pas l'information désirée.
+Dans cet exemple, on suppose que les lignes à extraire sont les seuls à utiliser le préfixe recherché.
+En SYSIN, on entrera donc :
+"SORT FIELDS=COPY" On va demander en traitement principal de simplement copier la ligne et non de trier l'intégralité du document
+"INCLUDE COND=(1,80,SS,EQ,C'LOL')" On va chercher exactement (EQ) la chaîne LOL (C'LOL') depuis la colonne 1 sur 80 caractères (1,80)
+
+
+Step 3 : CUTPASTE
+PGM=SORT
+On va maintenant extraire les informations en fonction des colonnes.
+Comme SDSF respecte strictement les tailles de colonnes données, on sait où se trouvent les informations.
+Le gros du travail consiste donc à compter sur quelle colonne se trouve quelle information.
+On va également mettre une condition pour ajouter une information : si la STC consomme moins de 2500 pages mémoire, alors on affichera un "KO" sinon un "OK".
+"INREC FIELDS=(1:8,7," Avant traitement (INREC), on va lire l'entrée et la reformater telle qu'en colonne 1 on lise ce qui était en colonne 8 sur 7 caractères...
+"              9:26,7," ...on va mettre en colonne 9 ce qui était à la colonne 26 sur 7 caractères...
+"              17:35,8," ...etc...
+"              26:44,4," INREC recopie ce qui est en entrée vers un espace temporaire "vide" avant traitement
+"              31:51,6," Tous ces ordres permettent de placer à des endroits précis des parties de l'entrée
+"              38:62,6)"
+"OUTREC IFTHEN=(WHEN=(31,6,ZD,GT,2500)," Après traitement (OUTREC) on va d'abord vérifier une condition, si en colonne 31 sur 6 caractères on a une valeur supérieure à 2500 (ZD permet de considérer les 6 carctères comme des chiffres)...
+"  BUILD=(1,43,44:C' OK',164X))," ...alors en sortie on recopie depuis la colonne 1 sur 43 caractères (1,43), puis on place en colonne 44 le texte ' OK' suivi de 164 espaces
+"  IFTHEN=(WHEN=NONE," Sinon, si aucune condition n'est requise...
+"    BUILD=(1,43,44:C' KO',164X))" ...on fait la même chose en écrivant KO
+"SORT FIELDS=(1,7,CH,A)" Le traitement principal entre INREC et OUTREC sera de trier de façon ascentdante (A) les enregistrements en fonction de la clé formée de caractères (CH) se trouvant à la colonne 1 sur une longueur de 7
+
+Cette opération permet de voir que les champs peuvent être interprétés comme des nombres (ZD) ou du texte (CH).
+L'ordre de traitement sera : entrée (SORTIN) -> INREC -> SORT -> OUTREC -> sortie (SORTOUT)
+Les 164 espaces servent à ne pas perturber le SMTP utilisé dans certains cas (SMTP considèrera que le mail est "terminé" après un certain nombre d'espaces).
+
+
+Step 4 : TOHTML
+PGM=SORT
+On va maintenant ajouter du HTML.
+En effet, on peut arrêter le traitement ici et transférer à d'autres outils les informations récoltées, mais si l'on souhaite recevoir par mail un tableau agréable à visualiser il faut ajouter quelques éléments.
+Si l'on souhaite faire un fichier CSV, il suffit de transformer les espaces séparant les colonnes par un délimiteur (le caractère ; par exemple), si l'on souhaite faire un tableau HTML il suffit de suivre l'exemple :
+"SORT FIELDS=COPY" Le traitement principal ne sera qu'une copie des enregistrements, aucun tri
+"INREC IFTHEN=(WHEN=(45,2,CH,EQ,C'OK')," En entrée, on va d'abord regarder si un 'OK' existe à colonne 45 sur 2 caractères...
+"  BUILD=(1,44,45:C'<FONT COLOR="GREEN">OK</FONT></TR>',128X))," ...si c'est le cas, on construit un enregistrement avec les 44 caractères depuis la colonne 1, on ajoute à la colonne 45 une balise HTML pour écrire du texte en vert, et on ajoute 128 espaces
+"  IFTHEN=(WHEN=NONE," Sinon...
+"    BUILD=(1,44,45:C'<FONT COLOR="RED">KO</FONT></TR>',124X))" ...on fait de même en affichant en HTML un KO en rouge suivi de 124 espaces
+"OUTREC BUILD=(C'<TR><TD>'," Après traitement, on va ajouter sur chaque ligne une balise TR au début,
+"              1,7,C'</TD><TD>'," puis copier 7 caractères depuis la colonne 1 et les faire suivre de balises TD,
+"              9,7,C'</TD><TD>'," on copie depuis la colonne 9 sur une longueur de 7 caractères et on les fait suivre de balises TD...
+"              17,8,C'</TD><TD>'," ...
+"              26,4,C'</TD><TD>'," ...
+"              31,6,C'</TD><TD>'," ...
+"              38,6,C'</TD><TD>'," ...
+"              44,100)" ... et on recopie 100 caractères depuis la colonne 44
+
+Cette mise en forme est incomplète : ici on a traité uniquement les enregistrements pour leurs mettre les indicateurs de champs et de lignes en HTML.
+Les balises d'ouverture et de fermeture de tableau, corps et page HTML sont ajoutés dans d'autres étapes ne travaillant pas sur chaque enregistrement.
+
+
+Step 5 : HMAIL1 [Attention : à partir de ce step, le mail est construit. En fonction de votre installation, l'envoi de mail peut varier et toutes ces informations n'ont pas toujours à être indiquées SAUF le type de contenu qui doit être TEXT/HTML]
+PGM=ICEGENER
+On va maintenant préparer la communication avec le serveur SMTP et l'en-tête utile pour envoyer le mail.
+ICEGENER a la particularité de pouvoir copier/coller entre des DD de LRECL différentes, ce que SORT ne sait pas faire.
+Le problème de l'exemple fourni est que l'INSTREAM est contenue dans un JCL, donc en 80 colonnes, et SMTP ne comprend pas toujours les 120 caractères qu'ICEGENER ajoute.
+Le step suivant servira simplement à ajouter des espaces.
+Les choses importantes à noter sur ce step sont donc :
+- passage de 80 à 200 caractères
+- on précise dans l'en-tête que l'on a écrit du TEXT/HTML (le client mail interprétera donc les balises au lieu de les afficher)
+- on ouvre toutes les balises HTML et de tableau
+- le charset des émulateurs de 3270 imposent d'utilisent certains caractères à la palce d'autres (dans l'exemple suivant les 'à' sont des @ pour z/OS)
+A partir de ce step, et pour la gestion en-tête/en-pied, l'exemple utilise des datasets temporaires (double &).
+Les traitements sont suffisament simples pour ne pas avoir à les vérifier.
+
+
+Step 6 : HMAIL2
+PGM=SORT
+Ici, on va uniquement copier les caractères 1 à 80, puis ajouter 120 espaces.
+Ceci afin que SMTP ne croit pas que le mail est terminé à cause des caractères non-vérifiés ajoutés par ICEGENER.
+En SYSIN on verra donc :
+"SORT FIELDS=COPY" Aucun traitement, seulement de la copie
+"OUTREC BUILD=(1,80,120X)" On copie depuis la colonne 1 sur 80 caractères, et on ajoute 120 espaces
+
+
+Step 6 : FMAIL1
+PGM=ICEGENER
+Ici, on écrit la fermeture des balises HTML, la fin du mail, et la fin de communication SMTP.
+Comme sur le step 5 : c'est une copie depuis un LRECL 80 vers 200, il faudra donc mettre des espaces.
+
+
+Step 7 : FMAIL2
+PGM=SORT
+Comme le step 6, on copie les 80 premiers caractères, et on ajoute 120 espaces.
+
+
+Step 8 : SMAIL
+PGM=ICEGENER
+On assemble maintenant les 3 parties :
+1) Début communication SMTP, en-tête mail, en-tête HTML (dataset temporaire &&HEADTMP2)
+2) Corps du mail et contenu du tableau (variable &FILE2 renvoyant vers un dataset)
+3) Fin du tableau et du HTML, fin de mail et fermeture de la connection SMTP (dataset temporaire &&FOOTTMP2)
+Ces 3 parties sont concaténées dans la DD SYSUT1 et sont copiées dans la file B du serveur SMTP tournant sur le z/OS.
+
+
+
+Ce JCL est fourni à titre d'exemple, il n'y a pas qu'une seule façon d'extraire les données et de les traiter.
+Il ne faut pas hésiter à consulter la documentation de SORT/DFSORT, SDSF & ISFAFD, ainsi qu'ICEGENER pour faire des choses plus poussées.

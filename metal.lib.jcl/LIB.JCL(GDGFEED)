@@ -1,0 +1,18 @@
+//STAGE04F JOB (STAGE04),'Fabrice BOISSIER',CLASS=A,MSGCLASS=A,         00010005
+//             MSGLEVEL=(1,1),NOTIFY=&SYSUID                            00020005
+//*                                                                     00030005
+//STEP01   EXEC PGM=IEBGENER                                            00040005
+//SYSPRINT DD SYSOUT=B                                                  00050005
+//SYSIN    DD DUMMY                                                     00060005
+//SYSUT1   DD *                                                         00070005
+ARTICLE1      G5                                                        00080005
+ARTICLE2                                                                00090005
+ARTICLE3                                                                00100005
+/*                                                                      00110005
+//SYSUT2   DD DSN=&SYSUID..STOCK.GDGROUP(+1),                           00120005
+//             DISP=(NEW,CATLG,DELETE),                                 00130005
+//             UNIT=3390,VOL=SER=STGDSK,                                00140005
+//             SPACE=(TRK,1),                                           00150005
+//             DCB=(&SYSUID..STOCK.GDGMODEL)                            00160005
+//                                                                      00170005
+

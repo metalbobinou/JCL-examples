@@ -1,0 +1,11 @@
+//STAGE04L JOB (STAGE04),'Fabrice BOISSIER',CLASS=A,MSGCLASS=A,         00010000
+//             MSGLEVEL=(1,1),NOTIFY=&SYSUID                            00020000
+//*                                                                     00030000
+//STEP01   EXEC PGM=IDCAMS                                              00040001
+//SYSPRINT DD SYSOUT=B                                                  00050000
+//SYSIN    DD *                                                         00060001
+      DELETE (STAGE04.STOCK.GDGROUP) GDG FORCE PURGE                    00070001
+      DELETE (STAGE04.STOCK.GDGMODEL)                                   00080001
+/*                                                                      00090001
+//                                                                      00100001
+

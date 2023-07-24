@@ -1,0 +1,26 @@
+Dans SDSF : "st" contient les résultats
+? devant JOB, puis lire les différentes logs
+Ne pas oublier dans l'exécution d'ajouter une carte DD SYSOuT à SYSOUT=* pour TOUTES les logs !
+
+METAL.MALIB.JCL => PDS, organization=PO
+RECFM=FB,LRECL=80,BLKSIZE=800,1stExt=200,second=10,DIRBlock=10
+
+METAL.MALIB.COBOL => PDS, organization=PO
+RECFM=FB,LRECL=80,BLKSIZE=80,1stExt=200,second=40,DIRBlock=10
+
+METAL.MALIB.OBJ => PDS, organization=PO
+RECFM=FB,LRECL=80,BLKSIZE=80,1stExt=200,second=40,DIRBlock=10
+
+METAL.MALIB.OUT => PDS, organization=PO
+RECFM=U,LRECL=80,BLKSIZE=256,1stExt=200,second=40,DIRBlock=10
+
+
+METAL.MALIB.DATA.IN.DEP$JAN => organisation=PS
+RECFM=FB,LRECL=35,BLKSIZE=350,1stExt=10,second=5
+
+METAL.MALIB.DATA.OUT.TOTAL => organisation=PS
+RECFM=FB,LRECL=37,BLKSIZE=370,1stExt=10,second=5
+
+
+Dans LINKER, chercher COB2LIB et COB2COMP si possible...
+Sinon, SCEELKED et SIGYPROC au moins (peut être aussi LINKLIB et SIGYPROC)

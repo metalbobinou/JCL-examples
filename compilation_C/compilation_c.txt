@@ -1,0 +1,14 @@
+Mettre terminal 3270 en codepage 1047 - US : hôte mainframe en US !
+Dans SDSF : "st" contient les résultats
+
+METAL.MALIB.JCL => PDS, organization=PO
+RECFM=FB,LRECL=80,BLKSIZE=800,1stExt=200,second=10,DIRBlock=10
+
+METAL.MALIB.C => PDS, organization=PO
+RECFM=FB,LRECL=240,BLKSIZE=2400,1stExt=200,second=40,DIRBlock=10
+
+METAL.MALIB.OBJ => PDS, organization=PO
+RECFM=FB,LRECL=80,BLKSIZE=80,1stExt=200,second=40,DIRBlock=10
+
+METAL.MALIB.OUT => PDS, organization=PO
+RECFM=U,LRECL=80,BLKSIZE=256,1stExt=200,second=40,DIRBlock=10
